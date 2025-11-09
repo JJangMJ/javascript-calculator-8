@@ -1,4 +1,5 @@
 import { BASE_DELIMITERS } from "./constants/delimiters.js";
+import { validateCustomDelimiter } from "./Validator.js";
 
 function extractCustomDelimiter(input) {
   const customDelimiterPattern = /^\/\/(.)(\\n|\n)/;
@@ -9,6 +10,8 @@ function extractCustomDelimiter(input) {
   }
 
   const customDelimiter = match[1];
+  validateCustomDelimiter(customDelimiter);
+
   const remainingText = input.slice(match[0].length);
 
   return { text: remainingText, customDelimiter };
