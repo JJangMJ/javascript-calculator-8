@@ -1,9 +1,14 @@
 import { BASE_DELIMITERS } from "./constants/delimiters.js";
-import { validateCustomDelimiter } from "./Validator.js";
+import { validateCustomDelimiter, validateNumbers } from "./Validator.js";
+import {
+  CUSTOM_DELIMITER_PATTERN,
+  REGEX_ESCAPE_PATTERN,
+  NUMBER_FILTER_PATTERN,
+  WHITESPACE_PATTERN,
+} from "./constants/patterns.js";
 
 function extractCustomDelimiter(input) {
-  const customDelimiterPattern = /^\/\/(.)(\\n|\n)/;
-  const match = input.match(customDelimiterPattern);
+  const match = input.match(CUSTOM_DELIMITER_PATTERN);
 
   if (!match) {
     return { text: input, customDelimiter: null };
@@ -13,7 +18,6 @@ function extractCustomDelimiter(input) {
   validateCustomDelimiter(customDelimiter);
 
   const remainingText = input.slice(match[0].length);
-
   return { text: remainingText, customDelimiter };
 }
 
@@ -25,11 +29,19 @@ function buildDelimiterRegex(customDelimiter) {
   }
 
   const escapedDelimiters = delimiters.map((delimiter) =>
-    delimiter.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")
+    delimiter.replace(REGEX_ESCAPE_PATTERN, "\\$&")
   );
 
   const pattern = escapedDelimiters.join("|");
   return new RegExp(pattern);
+}
+
+function normalizeToNumber(rawValue) {
+  const onlyNumberChars = rawValue.replace(NUMBER_FILTER_PATTERN, "");
+  const cleaned = onlyNumberChars.replace(WHITESPACE_PATTERN, "");
+  const normalized = cleaned === "" ? "0" : cleaned;
+
+  return Number(normalized);
 }
 
 export function parseToNumbers(input) {
@@ -40,12 +52,8 @@ export function parseToNumbers(input) {
   const { text, customDelimiter } = extractCustomDelimiter(input);
   const delimiterRegex = buildDelimiterRegex(customDelimiter);
   const splittedInput = text.split(delimiterRegex);
-  const trimmedValues = splittedInput
-    .map((value) => value.trim())
-    .filter((value) => value !== "");
-  const numbers = trimmedValues
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value));
+  const numbers = splittedInput.map((rawValue) => normalizeToNumber(rawValue));
+  validateNumbers(numbers);
 
   return numbers;
 }
